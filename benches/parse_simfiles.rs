@@ -1,9 +1,9 @@
 #[macro_use]
 extern crate criterion;
-extern crate smparser;
+extern crate sm_parser;
 
 use criterion::Criterion;
-use smparser::parse_simfile;
+use sm_parser::parse_simfile;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;

@@ -1,4 +1,4 @@
-mod simfile;
+pub mod simfile;
 use simfile::{SMSimfile, Stop, BPM};
 use std::io::BufRead;
 

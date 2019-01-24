@@ -14,7 +14,7 @@ pub struct Stop {
     pub time: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BPMDisplayType {
     /// Only a single value will be displayed
     Single,
@@ -82,10 +82,11 @@ pub enum NoteType {
 #[derive(Debug)]
 pub struct Chart {
     pub chart_type: String,
-    pub author: String,
+    pub author: Option<String>,
     pub difficulty: ChartDifficulty,
     /// The numerical difficulty level of the chart
-    pub level: u16,
+    pub meter: u16,
+    // TODO: Figure out what all these radar values actually are
     pub radar_values: Vec<f32>,
     /// Note data is defined in terms of "measures", every "measure" contains the notes for that
     /// measures, which is represented as a flat vector of notes, where there is one entry for
@@ -95,7 +96,7 @@ pub struct Chart {
 
 /// Represents a parsed Stepmania stepfile (.sm)
 #[derive(Debug)]
-pub struct SMSimfile {
+pub struct Simfile {
     /// The primary title of the song.
     pub title: Option<String>,
     /// The subtitle of the song.
@@ -148,9 +149,9 @@ pub struct SMSimfile {
     pub charts: Vec<Chart>,
 }
 
-impl SMSimfile {
-    pub fn new() -> SMSimfile {
-        SMSimfile {
+impl Simfile {
+    pub fn new() -> Simfile {
+        Simfile {
             title: None,
             subtitle: None,
             artist: None,
@@ -182,11 +183,11 @@ impl SMSimfile {
 
 #[cfg(test)]
 mod tests {
-    use crate::SMSimfile;
+    use crate::Simfile;
 
     #[test]
     fn sm_simfile_new_initializes_empty() {
-        let new_simfile = SMSimfile::new();
+        let new_simfile = Simfile::new();
 
         assert_eq!(new_simfile.title.is_none(), true);
         assert_eq!(new_simfile.subtitle.is_none(), true);

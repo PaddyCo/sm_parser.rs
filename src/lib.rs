@@ -5,9 +5,6 @@ use std::io::BufRead;
 pub fn parse_simfile<R: BufRead>(reader: &mut R) -> SMSimfile {
     let mut sim = SMSimfile::new();
 
-    // TODO: Instead of going line-by-line, check if we can split it up in sections using the
-    // semicolon as the delimiter? This would lead to better behaviour when parsing multi-line
-    // properties (BPMs, Notechart etc)
     loop {
         let mut buf = vec![];
         match reader.read_until(b';', &mut buf) {
@@ -170,6 +167,8 @@ mod tests {
 
     // TODO: Add test for simfile that sets every possible value
     // TODO: Add test for simfile that sets the least possible amount of values
+    // TODO: Add test for simfile with japanese properties etc
+    // TODO: Test errors
 
     fn load_and_parse_simfile(filename: &str) -> SMSimfile {
         // Load example file

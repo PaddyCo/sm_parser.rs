@@ -44,9 +44,9 @@ fn parses_empty_title() {
 
 #[test]
 fn parses_i18n_title() {
-    // This is the only test where I explicitly test for
+    // This is the only test where we explicitly test for
     // Kanji/Hiragana characters, just to make sure it's handling
-    // non-ascii characters correctly j
+    // non-ascii characters correctly in general
     let sim = parse_string_as_simfile("#TITLE:虹を編めたら;");
     assert_eq!(sim.title, Some("虹を編めたら".to_string()));
 }

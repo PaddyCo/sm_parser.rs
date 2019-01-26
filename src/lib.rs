@@ -1,4 +1,6 @@
+pub mod error;
 pub mod simfile;
+use error::ChartParseError;
 use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, Simfile, Stop, BPM};
 use std::io::BufRead;
 
@@ -7,6 +9,8 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Simfile {
 
     loop {
         let mut buf = vec![];
+        // TODO: Check if having a semicolon in the middle of a value is supported
+        // in Stepmania e.g "#TITLE: This is; a title;", if it does: make it work.
         match reader.read_until(b';', &mut buf) {
             Ok(count) => {
                 if count == 0 {
@@ -27,17 +31,22 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Simfile {
 }
 
 fn parse_section(simfile: &mut Simfile, section: &str) {
-    let key_start_index = match section.find('#') {
+    // Get start of the section (#KEY: value;)
+    let section_start_index = match section.find('#') {
         Some(i) => i + 1,
         None => return,
     };
+    let section = &section[section_start_index..];
+
+    // Get the end of the key
     let key_end_index = match section.find(':') {
         Some(i) => i,
         None => return,
     };
+
     let value_end_index = section.len() - 1;
 
-    let key = &section[key_start_index..key_end_index];
+    let key = &section[..key_end_index];
     let val = &section[key_end_index + 1..value_end_index];
     let value = if val.len() > 0 {
         Some(val.to_string())
@@ -102,7 +111,13 @@ fn parse_section(simfile: &mut Simfile, section: &str) {
                 }
             }
         }
-        "NOTES" => simfile.charts.push(parse_chart(value)),
+        "NOTES" => match parse_chart(value) {
+            Ok(chart) => simfile.charts.push(chart),
+            Err(e) => {
+                // TODO: Handle error
+                println!("Error parsing CHART: {}", e);
+            }
+        },
         _ => {}
     }
 }
@@ -161,18 +176,18 @@ fn parse_display_bpm(value: Option<String>) -> Option<DisplayBPM> {
     return Some(display_bpm);
 }
 
-fn parse_chart(value: Option<String>) -> Chart {
+fn parse_chart(value: Option<String>) -> Result<Chart, ChartParseError> {
     // TODO: Error if value == None
     let value = value.unwrap();
     let value = value.trim();
     let values: Vec<&str> = value.split(":").map(|v| v.trim()).collect();
 
-    if values.len() != 6 {
+    if values.len() < 6 {
         // TODO: Throw error!
-        panic!("Invalid chart data");
+        return Err(ChartParseError {});
     }
 
-    Chart {
+    let chart = Chart {
         chart_type: values[0].to_string(),
         author: match values[1].is_empty() {
             true => None,
@@ -197,7 +212,9 @@ fn parse_chart(value: Option<String>) -> Chart {
         },
         radar_values: vec![],
         note_data: vec![vec![]],
-    }
+    };
+
+    Ok(chart)
 }
 
 struct KeyValue {

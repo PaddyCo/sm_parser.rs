@@ -305,9 +305,9 @@ fn parses_stops() {
     }
 
     // Is it parsed correctly?
-    assert_eq!(sim.stops.len(), 5);
-    assert_stop(&sim.stops[0], 236.000, 0.227);
     assert_stop(&sim.stops[1], 236.500, 0.228);
+    assert_stop(&sim.stops[0], 236.000, 0.227);
+    assert_eq!(sim.stops.len(), 5);
     assert_stop(&sim.stops[2], 238.000, 0.227);
     assert_stop(&sim.stops[3], 238.500, 0.227);
     assert_stop(&sim.stops[4], 239.000, 0.114);
@@ -333,4 +333,16 @@ fn parse_simfile_parses_correctly() {
     assert_bpm(&sim.bpms[0], 0.0, 210.0);
 
     // TODO: Test chart
+}
+
+#[test]
+fn parse_simfile_parse_comment_issue() {
+    // This should not panic
+    let sim = parse_string_as_simfile(
+        "
+            // This is a comment: 23
+            #TITLE:A title;
+        ",
+    );
+    assert_eq!(sim.title, Some("A title".to_string()));
 }

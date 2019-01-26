@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub struct BPM {
     /// The row where the BPM gets set
@@ -64,6 +66,12 @@ pub enum ChartDifficulty {
     Hard,
     Challenge,
     Edit,
+}
+
+impl fmt::Display for ChartDifficulty {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug)]

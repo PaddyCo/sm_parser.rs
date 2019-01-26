@@ -7,11 +7,9 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-// TODO: Add test for simfile that sets every possible value
-// TODO: Add test for simfile that sets the least possible amount of values
-// TODO: Add test for simfile with japanese properties etc
-// TODO: Make better tests for properties (Look at the Display BPM tests)
 // TODO: Test errors
+// TODO: Test chart parsing
+// TODO: Test BGCHANGES/FGCHANGES parsing
 
 fn load_and_parse_simfile(filename: &str) -> Simfile {
     // Load example file
@@ -32,73 +30,237 @@ fn assert_bpm(bpm: &BPM, parsed_row: f32, parsed_bpm: f32) {
     assert_eq!(bpm.bpm, parsed_bpm);
 }
 
-fn assert_stop(stop: &Stop, parsed_row: f32, parsed_time: f32) {
-    assert_eq!(stop.row, parsed_row);
-    assert_eq!(stop.time, parsed_time);
+#[test]
+fn parses_title() {
+    let sim = parse_string_as_simfile("#TITLE:The Title;");
+    assert_eq!(sim.title, Some("The Title".to_string()));
 }
 
 #[test]
-fn parse_simfile_parses_correctly() {
-    let sim = load_and_parse_simfile("goin_under.sm");
+fn parses_empty_title() {
+    let sim = parse_string_as_simfile("#TITLE:;");
+    assert_eq!(sim.title, None);
+}
 
-    // Is it parsed correctly?
-    assert_eq!(sim.title, Some("Goin' Under".to_string()));
-    assert_eq!(sim.artist, Some("NegaRen".to_string()));
-    assert_eq!(sim.genre, Some("Raggacore".to_string()));
-    assert_eq!(sim.banner_path, Some("bn.png".to_string()));
-    assert_eq!(sim.background_path, Some("bg.png".to_string()));
-    assert_eq!(sim.music_path, Some("Goin' Under.ogg".to_string()));
-    assert_eq!(sim.offset, Some(0.0));
-    assert_eq!(sim.sample_start, Some(45.714001));
-    assert_eq!(sim.sample_length, Some(13.714000));
+#[test]
+fn parses_i18n_title() {
+    // This is the only test where I explicitly test for
+    // Kanji/Hiragana characters, just to make sure it's handling
+    // non-ascii characters correctly j
+    let sim = parse_string_as_simfile("#TITLE:虹を編めたら;");
+    assert_eq!(sim.title, Some("虹を編めたら".to_string()));
+}
+
+#[test]
+fn parses_subtitle() {
+    let sim = parse_string_as_simfile("#SUBTITLE:The Subtitle;");
+    assert_eq!(sim.subtitle, Some("The Subtitle".to_string()));
+}
+
+#[test]
+fn parses_empty_subtitle() {
+    let sim = parse_string_as_simfile("#SUBTITLE:;");
+    assert_eq!(sim.subtitle, None);
+}
+
+#[test]
+fn parses_artist() {
+    let sim = parse_string_as_simfile("#ARTIST:The Artist;");
+    assert_eq!(sim.artist, Some("The Artist".to_string()));
+}
+
+#[test]
+fn parses_empty_artist() {
+    let sim = parse_string_as_simfile("#ARTIST:;");
+    assert_eq!(sim.artist, None);
+}
+
+#[test]
+fn parses_title_translit() {
+    let sim = parse_string_as_simfile("#TITLETRANSLIT:The Title;");
+    assert_eq!(sim.title_translit, Some("The Title".to_string()));
+}
+
+#[test]
+fn parses_empty_title_translit() {
+    let sim = parse_string_as_simfile("#TITLETRANSLIT:;");
+    assert_eq!(sim.title_translit, None);
+}
+
+#[test]
+fn parses_subtitle_translit() {
+    let sim = parse_string_as_simfile("#SUBTITLETRANSLIT:The Subtitle;");
+    assert_eq!(sim.subtitle_translit, Some("The Subtitle".to_string()));
+}
+
+#[test]
+fn parses_empty_subtitle_translit() {
+    let sim = parse_string_as_simfile("#SUBTITLETRANSLIT:;");
+    assert_eq!(sim.subtitle_translit, None);
+}
+
+#[test]
+fn parses_artist_translit() {
+    let sim = parse_string_as_simfile("#ARTISTTRANSLIT:The Artist;");
+    assert_eq!(sim.artist_translit, Some("The Artist".to_string()));
+}
+
+#[test]
+fn parses_empty_artist_translit() {
+    let sim = parse_string_as_simfile("#ARTISTTRANSLIT:;");
+    assert_eq!(sim.artist_translit, None);
+}
+
+#[test]
+fn parses_genre() {
+    let sim = parse_string_as_simfile("#GENRE:The Genre;");
+    assert_eq!(sim.genre, Some("The Genre".to_string()));
+}
+
+#[test]
+fn parses_empty_genre() {
+    let sim = parse_string_as_simfile("#GENRE:;");
+    assert_eq!(sim.genre, None);
+}
+
+#[test]
+fn parses_credit() {
+    let sim = parse_string_as_simfile("#CREDIT:The Credit;");
+    assert_eq!(sim.credit, Some("The Credit".to_string()));
+}
+
+#[test]
+fn parses_empty_credit() {
+    let sim = parse_string_as_simfile("#CREDIT:;");
+    assert_eq!(sim.credit, None);
+}
+
+#[test]
+fn parses_banner() {
+    let sim = parse_string_as_simfile("#BANNER:TheBanner.png;");
+    assert_eq!(sim.banner_path, Some("TheBanner.png".to_string()));
+}
+
+#[test]
+fn parses_empty_banner() {
+    let sim = parse_string_as_simfile("#BANNER:;");
+    assert_eq!(sim.banner_path, None);
+}
+
+#[test]
+fn parses_background() {
+    let sim = parse_string_as_simfile("#BACKGROUND:TheBackground.png;");
+    assert_eq!(sim.background_path, Some("TheBackground.png".to_string()));
+}
+
+#[test]
+fn parses_empty_background() {
+    let sim = parse_string_as_simfile("#BACKGROUND:;");
+    assert_eq!(sim.background_path, None);
+}
+
+#[test]
+fn parses_lyrics_path() {
+    let sim = parse_string_as_simfile("#LYRICSPATH:TheLyrics.lrc;");
+    assert_eq!(sim.lyrics_path, Some("TheLyrics.lrc".to_string()));
+}
+
+#[test]
+fn parses_empty_lyrics_path() {
+    let sim = parse_string_as_simfile("#LYRICSPATH:;");
+    assert_eq!(sim.lyrics_path, None);
+}
+
+#[test]
+fn parses_cd_title() {
+    let sim = parse_string_as_simfile("#CDTITLE:TheCdTitle.png;");
+    assert_eq!(sim.cd_title_path, Some("TheCdTitle.png".to_string()));
+}
+
+#[test]
+fn parses_empty_cd_title() {
+    let sim = parse_string_as_simfile("#CDTITLE:;");
+    assert_eq!(sim.cd_title_path, None);
+}
+
+#[test]
+fn parses_music() {
+    let sim = parse_string_as_simfile("#MUSIC:TheMusic.ogg;");
+    assert_eq!(sim.music_path, Some("TheMusic.ogg".to_string()));
+}
+
+#[test]
+fn parses_empty_music() {
+    let sim = parse_string_as_simfile("#MUSIC:;");
+    assert_eq!(sim.music_path, None);
+}
+
+#[test]
+fn parses_offset() {
+    let sim = parse_string_as_simfile("#OFFSET:43.053;");
+    assert_eq!(sim.offset, Some(43.053));
+}
+
+#[test]
+fn parses_empty_offset() {
+    let sim = parse_string_as_simfile("#OFFSET:;");
+    assert_eq!(sim.offset, None);
+}
+
+#[test]
+fn parses_sample_start() {
+    let sim = parse_string_as_simfile("#SAMPLESTART:43.053;");
+    assert_eq!(sim.sample_start, Some(43.053));
+}
+
+#[test]
+fn parses_empty_sample_start() {
+    let sim = parse_string_as_simfile("#SAMPLESTART:;");
+    assert_eq!(sim.sample_start, None);
+}
+
+#[test]
+fn parses_sample_length() {
+    let sim = parse_string_as_simfile("#SAMPLELENGTH:43.053;");
+    assert_eq!(sim.sample_length, Some(43.053));
+}
+
+#[test]
+fn parses_empty_sample_length() {
+    let sim = parse_string_as_simfile("#SAMPLELENGTH:;");
+    assert_eq!(sim.sample_length, None);
+}
+
+#[test]
+fn parses_true_selectable() {
+    let sim = parse_string_as_simfile("#SELECTABLE:YES;");
     assert_eq!(sim.selectable, Some(true));
-    assert_eq!(sim.bpms.len(), 1);
-    assert_bpm(&sim.bpms[0], 0.0, 210.0);
-
-    // TODO: Test chart
 }
 
 #[test]
-fn parses_multiple_bpms_correctly() {
-    let sim = load_and_parse_simfile("news_39.sm");
+fn parses_false_selectable() {
+    let sim = parse_string_as_simfile("#SELECTABLE:NO;");
+    assert_eq!(sim.selectable, Some(false));
+}
+
+#[test]
+fn parses_empty_selectable() {
+    let sim = parse_string_as_simfile("#SELECTABLE:;");
+    assert_eq!(sim.selectable, None);
+}
+
+#[test]
+fn parses_bpms() {
+    let sim = parse_string_as_simfile(
+        "#BPMS:0.000=132.000,237.000=33.000,237.125=66.000,237.250=132.000;",
+    );
 
     // Is it parsed correctly?
-    assert_eq!(sim.bpms.len(), 35);
+    assert_eq!(sim.bpms.len(), 4);
     assert_bpm(&sim.bpms[0], 0.000, 132.000);
     assert_bpm(&sim.bpms[1], 237.000, 33.000);
     assert_bpm(&sim.bpms[2], 237.125, 66.000);
     assert_bpm(&sim.bpms[3], 237.250, 132.000);
-    assert_bpm(&sim.bpms[4], 237.500, 66.000);
-    assert_bpm(&sim.bpms[5], 238.000, 132.000);
-    assert_bpm(&sim.bpms[6], 239.000, 99.000);
-    assert_bpm(&sim.bpms[7], 240.000, 132.000);
-    assert_bpm(&sim.bpms[8], 252.000, 66.000);
-    assert_bpm(&sim.bpms[9], 252.250, 132.000);
-    assert_bpm(&sim.bpms[10], 252.500, 264.000);
-    assert_bpm(&sim.bpms[11], 253.000, 132.000);
-    assert_bpm(&sim.bpms[12], 262.500, -132.001);
-    assert_bpm(&sim.bpms[13], 266.500, 132.000);
-    assert_bpm(&sim.bpms[14], 270.500, 264.000);
-    assert_bpm(&sim.bpms[15], 271.500, 132.000);
-    assert_bpm(&sim.bpms[16], 282.500, 264.000);
-    assert_bpm(&sim.bpms[17], 284.000, 396.000);
-    assert_bpm(&sim.bpms[18], 284.750, 44.000);
-    assert_bpm(&sim.bpms[19], 285.000, 132.000);
-    assert_bpm(&sim.bpms[20], 290.500, 396.000);
-    assert_bpm(&sim.bpms[21], 290.875, 44.000);
-    assert_bpm(&sim.bpms[22], 291.000, 396.000);
-    assert_bpm(&sim.bpms[23], 291.375, 44.000);
-    assert_bpm(&sim.bpms[24], 291.500, 396.000);
-    assert_bpm(&sim.bpms[25], 291.688, 44.000);
-    assert_bpm(&sim.bpms[26], 291.750, 396.000);
-    assert_bpm(&sim.bpms[27], 291.938, 44.000);
-    assert_bpm(&sim.bpms[28], 292.000, 132.000);
-    assert_bpm(&sim.bpms[29], 296.500, 264.000);
-    assert_bpm(&sim.bpms[30], 298.500, 132.000);
-    assert_bpm(&sim.bpms[31], 303.000, 264.000);
-    assert_bpm(&sim.bpms[32], 303.500, 132.000);
-    assert_bpm(&sim.bpms[33], 303.625, 264.000);
-    assert_bpm(&sim.bpms[34], 304.000, 132.000);
 }
 
 #[test]
@@ -132,36 +294,43 @@ fn parses_display_bpm_random() {
 }
 
 #[test]
-fn parses_multiple_stops() {
-    let sim = load_and_parse_simfile("news_39.sm");
+fn parses_stops() {
+    let sim = parse_string_as_simfile(
+        "#STOPS:236.000=0.227,236.500=0.228,238.000=0.227,238.500=0.227,239.000=0.114;",
+    );
+
+    fn assert_stop(stop: &Stop, parsed_row: f32, parsed_time: f32) {
+        assert_eq!(stop.row, parsed_row);
+        assert_eq!(stop.time, parsed_time);
+    }
 
     // Is it parsed correctly?
-    assert_eq!(sim.stops.len(), 27);
+    assert_eq!(sim.stops.len(), 5);
     assert_stop(&sim.stops[0], 236.000, 0.227);
     assert_stop(&sim.stops[1], 236.500, 0.228);
     assert_stop(&sim.stops[2], 238.000, 0.227);
     assert_stop(&sim.stops[3], 238.500, 0.227);
     assert_stop(&sim.stops[4], 239.000, 0.114);
-    assert_stop(&sim.stops[5], 239.375, 0.114);
-    assert_stop(&sim.stops[6], 239.750, 0.075);
-    assert_stop(&sim.stops[7], 270.500, 0.227);
-    assert_stop(&sim.stops[8], 282.500, 0.057);
-    assert_stop(&sim.stops[9], 282.750, 0.057);
-    assert_stop(&sim.stops[10], 283.000, 0.113);
-    assert_stop(&sim.stops[11], 283.500, 0.114);
-    assert_stop(&sim.stops[12], 296.500, 0.057);
-    assert_stop(&sim.stops[13], 296.750, 0.057);
-    assert_stop(&sim.stops[14], 297.000, 0.057);
-    assert_stop(&sim.stops[15], 297.250, 0.057);
-    assert_stop(&sim.stops[16], 297.500, 0.038);
-    assert_stop(&sim.stops[17], 297.667, 0.038);
-    assert_stop(&sim.stops[18], 297.833, 0.038);
-    assert_stop(&sim.stops[19], 298.000, 0.028);
-    assert_stop(&sim.stops[20], 298.125, 0.028);
-    assert_stop(&sim.stops[21], 298.250, 0.028);
-    assert_stop(&sim.stops[22], 298.375, 0.028);
-    assert_stop(&sim.stops[23], 303.000, 0.057);
-    assert_stop(&sim.stops[24], 303.250, 0.057);
-    assert_stop(&sim.stops[25], 303.625, 0.057);
-    assert_stop(&sim.stops[26], 303.875, 0.028);
+}
+
+#[test]
+fn parse_simfile_parses_correctly() {
+    let sim = load_and_parse_simfile("goin_under.sm");
+
+    // Is it parsed correctly?
+    assert_eq!(sim.title, Some("Goin' Under".to_string()));
+    assert_eq!(sim.artist, Some("NegaRen".to_string()));
+    assert_eq!(sim.genre, Some("Raggacore".to_string()));
+    assert_eq!(sim.banner_path, Some("bn.png".to_string()));
+    assert_eq!(sim.background_path, Some("bg.png".to_string()));
+    assert_eq!(sim.music_path, Some("Goin' Under.ogg".to_string()));
+    assert_eq!(sim.offset, Some(0.0));
+    assert_eq!(sim.sample_start, Some(45.714001));
+    assert_eq!(sim.sample_length, Some(13.714000));
+    assert_eq!(sim.selectable, Some(true));
+    assert_eq!(sim.bpms.len(), 1);
+
+    assert_bpm(&sim.bpms[0], 0.0, 210.0);
+
+    // TODO: Test chart
 }

@@ -1,10 +1,20 @@
-pub mod error;
 pub mod simfile;
-use error::ChartParseError;
 use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, Simfile, Stop, BPM};
 use std::io::BufRead;
 
-pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Simfile {
+#[derive(Debug, PartialEq)]
+pub enum SimfileParseError {
+    BufReadError,
+    FailedToParseBPMs,
+    FailedToParseStops,
+    TooManyValuesInDisplayBPM,
+    EmptyNotesSection,
+    InvalidChartFormat,
+    UnknownChartDifficulty,
+    FailedToParseChartMeter,
+}
+
+pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Result<Simfile, SimfileParseError> {
     let mut sim = Simfile::new();
 
     loop {
@@ -17,38 +27,36 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Simfile {
                     break;
                 }
                 let section = std::string::String::from_utf8_lossy(&buf);
-                parse_section(&mut sim, &section);
+                parse_section(&mut sim, &section)?;
             }
-            Err(e) => {
-                // TODO: Return error instead of printing to console
-                println!("ERROR: {}", e);
-                break;
+            Err(_) => {
+                return Err(SimfileParseError::BufReadError);
             }
         };
     }
 
-    return sim;
+    return Ok(sim);
 }
 
-fn parse_section(simfile: &mut Simfile, section: &str) {
+fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfileParseError> {
     // Get start of the section (#KEY: value;)
     let section_start_index = match section.find('#') {
         Some(i) => i + 1,
-        None => return,
+        None => return Ok(()),
     };
     let section = &section[section_start_index..];
 
     // Get the end of the key
     let key_end_index = match section.find(':') {
         Some(i) => i,
-        None => return,
+        None => return Ok(()),
     };
 
     let value_end_index = section.len() - 1;
 
     let key = &section[..key_end_index];
     let val = &section[key_end_index + 1..value_end_index];
-    let value = if val.len() > 0 {
+    let value = if val.trim().len() > 0 {
         Some(val.to_string())
     } else {
         None
@@ -84,15 +92,13 @@ fn parse_section(simfile: &mut Simfile, section: &str) {
                             bpm: x.value,
                         })
                         .collect(),
-                    Err(e) => {
-                        // TODO: Handle error
-                        println!("Error parsing BPM: {}", e);
-                        vec![]
+                    Err(_) => {
+                        return Err(SimfileParseError::FailedToParseBPMs);
                     }
                 }
             }
         }
-        "DISPLAYBPM" => simfile.display_bpm = parse_display_bpm(value),
+        "DISPLAYBPM" => simfile.display_bpm = parse_display_bpm(value)?,
         "STOPS" => {
             simfile.stops = {
                 match parse_key_value_list(value) {
@@ -103,23 +109,20 @@ fn parse_section(simfile: &mut Simfile, section: &str) {
                             time: x.value,
                         })
                         .collect(),
-                    Err(e) => {
-                        // TODO: Handle error
-                        println!("Error parsing STOPS: {}", e);
-                        vec![]
+                    Err(_) => {
+                        return Err(SimfileParseError::FailedToParseStops);
                     }
                 }
             }
         }
         "NOTES" => match parse_chart(value) {
             Ok(chart) => simfile.charts.push(chart),
-            Err(e) => {
-                // TODO: Handle error
-                println!("Error parsing CHART: {}", e);
-            }
+            Err(e) => return Err(e),
         },
         _ => {}
-    }
+    };
+
+    return Ok(());
 }
 
 fn parse_float(value: Option<String>) -> Option<f32> {
@@ -140,10 +143,10 @@ fn parse_bool(value: Option<String>) -> Option<bool> {
     }
 }
 
-fn parse_display_bpm(value: Option<String>) -> Option<DisplayBPM> {
+fn parse_display_bpm(value: Option<String>) -> Result<Option<DisplayBPM>, SimfileParseError> {
     let value = match value {
         Some(i) => i,
-        None => return None,
+        None => return Ok(None),
     };
 
     let values: Vec<&str> = value.trim().split(":").collect();
@@ -169,22 +172,22 @@ fn parse_display_bpm(value: Option<String>) -> Option<DisplayBPM> {
             value: values[0].parse().unwrap(),
             value2: values[1].parse().unwrap(),
         },
-        // TODO: Throw error!
-        _ => panic!("Too many values in DisplayBPM"),
+        _ => return Err(SimfileParseError::TooManyValuesInDisplayBPM),
     };
 
-    return Some(display_bpm);
+    return Ok(Some(display_bpm));
 }
 
-fn parse_chart(value: Option<String>) -> Result<Chart, ChartParseError> {
-    // TODO: Error if value == None
-    let value = value.unwrap();
+fn parse_chart(value: Option<String>) -> Result<Chart, SimfileParseError> {
+    let value = match value {
+        Some(v) => v,
+        None => return Err(SimfileParseError::EmptyNotesSection),
+    };
     let value = value.trim();
     let values: Vec<&str> = value.split(":").map(|v| v.trim()).collect();
 
-    if values.len() < 6 {
-        // TODO: Throw error!
-        return Err(ChartParseError {});
+    if values.len() != 6 {
+        return Err(SimfileParseError::InvalidChartFormat);
     }
 
     let chart = Chart {
@@ -200,15 +203,13 @@ fn parse_chart(value: Option<String>) -> Result<Chart, ChartParseError> {
             "Hard" => ChartDifficulty::Hard,
             "Challenge" => ChartDifficulty::Challenge,
             "Edit" => ChartDifficulty::Edit,
-            i => {
-                // TODO: Throw error!
-                panic!("Unknown difficulty {}", i)
+            _ => {
+                return Err(SimfileParseError::UnknownChartDifficulty);
             }
         },
         meter: match values[3].parse() {
             Ok(i) => i,
-            // TODO: Throw error!
-            Err(e) => panic!("Error parsing Meter: {}", e),
+            Err(_) => return Err(SimfileParseError::FailedToParseChartMeter),
         },
         radar_values: vec![],
         note_data: vec![vec![]],
@@ -222,7 +223,14 @@ struct KeyValue {
     value: f32,
 }
 
-fn parse_key_value_list(value: Option<String>) -> Result<Vec<KeyValue>, std::num::ParseFloatError> {
+enum ParseKeyValueError {
+    FailedToParseKeyValue,
+    FailedToParseFloat,
+}
+
+// TODO: Check how Stepmania handles empty values in a keyvalue list:
+// E.g (#BPMS:0.0=120.0;;10.0=150.0)
+fn parse_key_value_list(value: Option<String>) -> Result<Vec<KeyValue>, ParseKeyValueError> {
     let value = match value {
         Some(i) => i,
         None => return Ok(vec![]),
@@ -237,11 +245,16 @@ fn parse_key_value_list(value: Option<String>) -> Result<Vec<KeyValue>, std::num
     for value in values {
         let key_value: Vec<&str> = value.split("=").collect();
         if key_value.len() != 2 {
-            // TODO: Return error
-            continue;
+            return Err(ParseKeyValueError::FailedToParseKeyValue);
         }
-        let key = key_value[0].trim().parse()?;
-        let value = key_value[1].trim().parse()?;
+        let key = match key_value[0].trim().parse() {
+            Ok(i) => i,
+            Err(_) => return Err(ParseKeyValueError::FailedToParseFloat),
+        };
+        let value = match key_value[1].trim().parse() {
+            Ok(i) => i,
+            Err(_) => return Err(ParseKeyValueError::FailedToParseFloat),
+        };
         let key_value = KeyValue {
             key: key,
             value: value,

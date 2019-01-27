@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-// TODO: Test errors
 // TODO: Test chart parsing
 // TODO: Test BGCHANGES/FGCHANGES parsing
 

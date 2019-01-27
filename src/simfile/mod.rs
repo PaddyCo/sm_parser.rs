@@ -58,7 +58,7 @@ pub struct FgChange {
     pub path: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ChartDifficulty {
     Beginner,
     Easy,
@@ -74,7 +74,7 @@ impl fmt::Display for ChartDifficulty {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NoteType {
     None,
     Normal,
@@ -95,7 +95,7 @@ pub struct Chart {
     /// The numerical difficulty level of the chart
     pub meter: u16,
     // TODO: Figure out what all these radar values actually are
-    pub radar_values: Vec<f32>,
+    pub radar_values: (f32, f32, f32, f32, f32),
     /// Note data is defined in terms of "measures", every "measure" contains the notes for that
     /// measures, which is represented as a flat vector of notes, where there is one entry for
     /// every lane and line in the measure.

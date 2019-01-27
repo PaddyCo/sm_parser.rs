@@ -1,6 +1,6 @@
 extern crate sm_parser;
 
-use sm_parser::simfile::{BPMDisplayType, Simfile, Stop, BPM};
+use sm_parser::simfile::{BPMDisplayType, ChartDifficulty, NoteType, Simfile, Stop, BPM};
 #[cfg(test)]
 use sm_parser::{parse_simfile, SimfileParseError};
 use std::fs::File;
@@ -312,6 +312,83 @@ fn parses_stops() {
     assert_stop(&sim.stops[2], 238.000, 0.227);
     assert_stop(&sim.stops[3], 238.500, 0.227);
     assert_stop(&sim.stops[4], 239.000, 0.114);
+}
+
+const TEST_CHART: &str = "
+#NOTES:
+     dance-single:
+     CondorTalon:
+     Challenge:
+     11:
+     0.779,0.891,0.620,0.091,0.863:
+0041
+103K
+2L1M
+310F
+;
+";
+
+#[test]
+fn parses_chart_type() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].chart_type, "dance-single");
+}
+
+#[test]
+fn parses_chart_author() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].author, Some("CondorTalon".to_string()));
+}
+
+#[test]
+fn parses_chart_difficulty() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].difficulty, ChartDifficulty::Challenge);
+}
+
+#[test]
+fn parses_chart_meter() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].meter, 11);
+}
+
+#[test]
+fn parses_chart_radar_values() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(
+        sim.charts[0].radar_values,
+        (0.779, 0.891, 0.620, 0.091, 0.863)
+    );
+}
+
+#[test]
+fn parses_chart_measures() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(
+        sim.charts[0].note_data[0],
+        vec![
+            // First row
+            NoteType::None,
+            NoteType::None,
+            NoteType::RollHead,
+            NoteType::Normal,
+            // Second row
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::HoldOrRollTail,
+            NoteType::AutomaticKeysound,
+            // Third row
+            NoteType::HoldHead,
+            NoteType::LiftNote,
+            NoteType::Normal,
+            NoteType::Mine,
+            // Fourth row
+            NoteType::HoldOrRollTail,
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::FakeNote,
+        ]
+    )
 }
 
 #[test]

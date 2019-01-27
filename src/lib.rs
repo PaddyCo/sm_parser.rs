@@ -211,7 +211,7 @@ fn parse_chart(value: Option<String>) -> Result<Chart, SimfileParseError> {
             Ok(i) => i,
             Err(_) => return Err(SimfileParseError::FailedToParseChartMeter),
         },
-        radar_values: vec![],
+        radar_values: (0.0, 0.0, 0.0, 0.0, 0.0),
         note_data: vec![vec![]],
     };
 

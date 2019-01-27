@@ -1,14 +1,12 @@
 extern crate sm_parser;
 
-use sm_parser::simfile::{BPMDisplayType, Simfile, Stop, BPM};
+use sm_parser::simfile::{BPMDisplayType, ChartDifficulty, NoteType, Simfile, Stop, BPM};
 #[cfg(test)]
 use sm_parser::{parse_simfile, SimfileParseError};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-// TODO: Test errors
-// TODO: Test chart parsing
 // TODO: Test BGCHANGES/FGCHANGES parsing
 
 fn load_and_parse_simfile(filename: &str) -> Result<Simfile, SimfileParseError> {
@@ -315,6 +313,118 @@ fn parses_stops() {
     assert_stop(&sim.stops[4], 239.000, 0.114);
 }
 
+const TEST_CHART: &str = "
+#NOTES:
+     dance-single:
+     CondorTalon:
+     Challenge:
+     11:
+     0.779,0.891,0.620,0.091,0.863:
+0041
+103K
+2L1M
+31ZF
+;
+";
+
+#[test]
+fn parses_chart_type() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].chart_type, "dance-single");
+}
+
+#[test]
+fn parses_chart_author() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].author, Some("CondorTalon".to_string()));
+}
+
+#[test]
+fn parses_chart_difficulty() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].difficulty, ChartDifficulty::Challenge);
+}
+
+#[test]
+fn parses_chart_meter() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(sim.charts[0].meter, 11);
+}
+
+#[test]
+fn parses_chart_radar_values() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(
+        sim.charts[0].radar_values,
+        vec![0.779, 0.891, 0.620, 0.091, 0.863]
+    );
+}
+
+#[test]
+fn parses_chart_measures() {
+    let sim = parse_string_as_simfile(TEST_CHART).unwrap();
+    assert_eq!(
+        sim.charts[0].note_data[0],
+        vec![
+            // First row
+            NoteType::None,
+            NoteType::None,
+            NoteType::RollHead,
+            NoteType::Normal,
+            // Second row
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::HoldOrRollTail,
+            NoteType::AutomaticKeysound,
+            // Third row
+            NoteType::HoldHead,
+            NoteType::LiftNote,
+            NoteType::Normal,
+            NoteType::Mine,
+            // Fourth row
+            NoteType::HoldOrRollTail,
+            NoteType::Normal,
+            NoteType::InvalidNote,
+            NoteType::FakeNote,
+        ]
+    )
+}
+
+#[test]
+fn parses_multiple_chart_measures() {
+    // Also testing some weird edge case stuff with comments
+    let sim = parse_string_as_simfile(
+        "
+        #NOTES:dance-single:CondorTalon:Challenge:11:0,0,0,0,0:
+        1010, // Measure 1
+        // Between measures
+        0101  // Measure 2
+        ;
+        ",
+    )
+    .unwrap();
+
+    assert_eq!(sim.charts[0].note_data.len(), 2);
+    assert_eq!(
+        sim.charts[0].note_data[0],
+        vec![
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::Normal,
+            NoteType::None
+        ]
+    );
+    assert_eq!(
+        sim.charts[0].note_data[1],
+        vec![
+            NoteType::None,
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::Normal
+        ]
+    );
+}
+
 #[test]
 fn parsing_bpm_with_too_many_values_returns_error() {
     let sim = parse_string_as_simfile("#BPMS:133.000=210.0000=300.0;");
@@ -431,7 +541,19 @@ fn parse_simfile_parses_correctly() {
 
     assert_bpm(&sim.bpms[0], 0.0, 210.0);
 
+    println!("{:#?}", sim);
+
     // TODO: Test chart
+}
+
+#[test]
+fn parse_simfile_ignores_comments() {
+    let sim = parse_string_as_simfile(
+        "#TITLE:This is a//very cool title
+        ;",
+    )
+    .unwrap();
+    assert_eq!(sim.title, Some("This is a".to_string()));
 }
 
 #[test]

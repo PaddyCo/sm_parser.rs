@@ -58,7 +58,7 @@ pub struct FgChange {
     pub path: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ChartDifficulty {
     Beginner,
     Easy,
@@ -74,7 +74,7 @@ impl fmt::Display for ChartDifficulty {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NoteType {
     None,
     Normal,
@@ -85,6 +85,7 @@ pub enum NoteType {
     AutomaticKeysound,
     LiftNote,
     FakeNote,
+    InvalidNote,
 }
 
 #[derive(Debug)]

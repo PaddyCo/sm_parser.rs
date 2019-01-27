@@ -7,7 +7,6 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 
-// TODO: Test chart parsing
 // TODO: Test BGCHANGES/FGCHANGES parsing
 
 fn load_and_parse_simfile(filename: &str) -> Result<Simfile, SimfileParseError> {
@@ -324,7 +323,7 @@ const TEST_CHART: &str = "
 0041
 103K
 2L1M
-310F
+31ZF
 ;
 ";
 
@@ -357,7 +356,7 @@ fn parses_chart_radar_values() {
     let sim = parse_string_as_simfile(TEST_CHART).unwrap();
     assert_eq!(
         sim.charts[0].radar_values,
-        (0.779, 0.891, 0.620, 0.091, 0.863)
+        vec![0.779, 0.891, 0.620, 0.091, 0.863]
     );
 }
 
@@ -385,10 +384,45 @@ fn parses_chart_measures() {
             // Fourth row
             NoteType::HoldOrRollTail,
             NoteType::Normal,
-            NoteType::None,
+            NoteType::InvalidNote,
             NoteType::FakeNote,
         ]
     )
+}
+
+#[test]
+fn parses_multiple_chart_measures() {
+    // Also testing some weird edge case stuff with comments
+    let sim = parse_string_as_simfile(
+        "
+        #NOTES:dance-single:CondorTalon:Challenge:11:0,0,0,0,0:
+        1010, // Measure 1
+        // Between measures
+        0101  // Measure 2
+        ;
+        ",
+    )
+    .unwrap();
+
+    assert_eq!(sim.charts[0].note_data.len(), 2);
+    assert_eq!(
+        sim.charts[0].note_data[0],
+        vec![
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::Normal,
+            NoteType::None
+        ]
+    );
+    assert_eq!(
+        sim.charts[0].note_data[1],
+        vec![
+            NoteType::None,
+            NoteType::Normal,
+            NoteType::None,
+            NoteType::Normal
+        ]
+    );
 }
 
 #[test]
@@ -507,7 +541,19 @@ fn parse_simfile_parses_correctly() {
 
     assert_bpm(&sim.bpms[0], 0.0, 210.0);
 
+    println!("{:#?}", sim);
+
     // TODO: Test chart
+}
+
+#[test]
+fn parse_simfile_ignores_comments() {
+    let sim = parse_string_as_simfile(
+        "#TITLE:This is a//very cool title
+        ;",
+    )
+    .unwrap();
+    assert_eq!(sim.title, Some("This is a".to_string()));
 }
 
 #[test]

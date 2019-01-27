@@ -1,6 +1,6 @@
 pub mod simfile;
-use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, Simfile, Stop, BPM};
-use std::io::BufRead;
+use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, NoteType, Simfile, Stop, BPM};
+use std::io::{BufRead, BufReader};
 
 #[derive(Debug, PartialEq)]
 pub enum SimfileParseError {
@@ -12,15 +12,49 @@ pub enum SimfileParseError {
     InvalidChartFormat,
     UnknownChartDifficulty,
     FailedToParseChartMeter,
+    UnsupportedNoteType,
+    FailedToParseRadarValues,
 }
 
+// TODO: Check if having a semicolon in the middle of a value is supported
+// in Stepmania e.g "#TITLE: This is; a title;", if it does: make it work.
+// TODO: Check if having a comment at the end of fields like title is supported
+// in Stepmania e.g "#TITLE: This is a //very cool title"
+// TODO: Handle non-UTF-8 streams! (at the moment they will return BufReadError)
 pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Result<Simfile, SimfileParseError> {
     let mut sim = Simfile::new();
 
+    // Clean data by removing comments and unneccesary whitespace
+    let mut cleaned_data = String::new();
+    loop {
+        let mut buf = String::new();
+        match reader.read_line(&mut buf) {
+            Ok(count) => {
+                if count == 0 {
+                    break;
+                }
+
+                // Ignore comments
+                let line = match buf.find("//") {
+                    Some(i) => &buf[..i],
+                    None => &buf,
+                };
+
+                cleaned_data.push_str(line.trim());
+                cleaned_data.push('\r');
+                cleaned_data.push('\n');
+            }
+            Err(e) => {
+                println!("{:?}", e);
+                return Err(SimfileParseError::BufReadError);
+            }
+        }
+    }
+
+    let mut reader = BufReader::new(cleaned_data.as_bytes());
+
     loop {
         let mut buf = vec![];
-        // TODO: Check if having a semicolon in the middle of a value is supported
-        // in Stepmania e.g "#TITLE: This is; a title;", if it does: make it work.
         match reader.read_until(b';', &mut buf) {
             Ok(count) => {
                 if count == 0 {
@@ -29,7 +63,8 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Result<Simfile, SimfileParse
                 let section = std::string::String::from_utf8_lossy(&buf);
                 parse_section(&mut sim, &section)?;
             }
-            Err(_) => {
+            Err(e) => {
+                println!("{:?}", e);
                 return Err(SimfileParseError::BufReadError);
             }
         };
@@ -55,7 +90,7 @@ fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfilePars
     let value_end_index = section.len() - 1;
 
     let key = &section[..key_end_index];
-    let val = &section[key_end_index + 1..value_end_index];
+    let val = &section[key_end_index + 1..value_end_index].trim();
     let value = if val.trim().len() > 0 {
         Some(val.to_string())
     } else {
@@ -211,9 +246,61 @@ fn parse_chart(value: Option<String>) -> Result<Chart, SimfileParseError> {
             Ok(i) => i,
             Err(_) => return Err(SimfileParseError::FailedToParseChartMeter),
         },
-        radar_values: (0.0, 0.0, 0.0, 0.0, 0.0),
-        note_data: vec![vec![]],
+        radar_values: parse_radar_values(values[4])?,
+        note_data: parse_chart_data(values[5])?,
     };
+
+    Ok(chart)
+}
+
+fn parse_radar_values(data: &str) -> Result<Vec<f32>, SimfileParseError> {
+    let values: Vec<&str> = data.split(",").collect();
+    let values: Vec<f32> = values
+        .into_iter()
+        .map(|v| match v.trim().parse() {
+            Ok(v) => v,
+            Err(_) => 0.0,
+        })
+        .collect();
+
+    Ok(values)
+}
+
+// TODO: Figure out what 'H' corresponds to, and if Stepmania recognizes this.
+fn parse_chart_data(data: &str) -> Result<Vec<Vec<NoteType>>, SimfileParseError> {
+    let measures: Vec<&str> = data.split(",").collect();
+    let mut chart: Vec<Vec<NoteType>> = vec![];
+
+    for data in measures {
+        let mut measure: Vec<NoteType> = vec![];
+
+        // Ignore comments
+        let end_index = data.find("//");
+        let data = match end_index {
+            Some(i) => &data[..i],
+            None => data,
+        };
+
+        for note in data.trim().chars() {
+            let note = match note {
+                '0' => NoteType::None,
+                '1' => NoteType::Normal,
+                '2' => NoteType::HoldHead,
+                '3' => NoteType::HoldOrRollTail,
+                '4' => NoteType::RollHead,
+                'M' => NoteType::Mine,
+                'K' => NoteType::AutomaticKeysound,
+                'L' => NoteType::LiftNote,
+                'F' => NoteType::FakeNote,
+                ' ' => continue,
+                '\r' => continue,
+                '\n' => continue,
+                _ => NoteType::InvalidNote,
+            };
+            measure.push(note);
+        }
+        chart.push(measure);
+    }
 
     Ok(chart)
 }

@@ -85,6 +85,7 @@ pub enum NoteType {
     AutomaticKeysound,
     LiftNote,
     FakeNote,
+    InvalidNote,
 }
 
 #[derive(Debug)]
@@ -95,7 +96,7 @@ pub struct Chart {
     /// The numerical difficulty level of the chart
     pub meter: u16,
     // TODO: Figure out what all these radar values actually are
-    pub radar_values: (f32, f32, f32, f32, f32),
+    pub radar_values: Vec<f32>,
     /// Note data is defined in terms of "measures", every "measure" contains the notes for that
     /// measures, which is represented as a flat vector of notes, where there is one entry for
     /// every lane and line in the measure.

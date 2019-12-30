@@ -283,6 +283,7 @@ fn parse_bg_change(value: &str) -> Result<BgChange, SimfileParseError> {
     let values: Vec<&str> = value.split('=').collect();
 
     // TODO: Find out how many values are REQUIRED by StepMania
+    // NOTE: From the SM wiki: "The set of entries is between the colon and the semicolon. Each entry is separated from the next by a comma. Each entry is composed of 1 to 11 values separated by equals."
     println!("{:?}", values);
 
     if values.len() < 6 {

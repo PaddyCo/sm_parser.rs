@@ -23,8 +23,8 @@ fn parse_string_as_simfile(data: &str) -> Result<Simfile, SimfileParseError> {
     parse_simfile(&mut BufReader::new(data.as_bytes()))
 }
 
-fn assert_bpm(bpm: &BPM, parsed_row: f32, parsed_bpm: f32) {
-    assert_eq!(bpm.row, parsed_row);
+fn assert_bpm(bpm: &BPM, parsed_beat: f32, parsed_bpm: f32) {
+    assert_eq!(bpm.beat, parsed_beat);
     assert_eq!(bpm.bpm, parsed_bpm);
 }
 
@@ -299,8 +299,8 @@ fn parses_stops() {
     )
     .unwrap();
 
-    fn assert_stop(stop: &Stop, parsed_row: f32, parsed_time: f32) {
-        assert_eq!(stop.row, parsed_row);
+    fn assert_stop(stop: &Stop, parsed_beat: f32, parsed_time: f32) {
+        assert_eq!(stop.beat, parsed_beat);
         assert_eq!(stop.time, parsed_time);
     }
 

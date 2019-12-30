@@ -2,16 +2,16 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct BPM {
-    /// The row where the BPM gets set
-    pub row: f32,
+    /// The beat where the BPM gets set
+    pub beat: f32,
     /// The BPM to set
     pub bpm: f32,
 }
 
 #[derive(Debug, Clone)]
 pub struct Stop {
-    /// The row the stop occurs
-    pub row: f32,
+    /// The beat the stop occurs
+    pub beat: f32,
     /// How long the stop lasts
     pub time: f32,
 }

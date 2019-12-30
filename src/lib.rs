@@ -125,7 +125,7 @@ fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfilePars
                     Ok(i) => i
                         .into_iter()
                         .map(|x| BPM {
-                            row: x.key,
+                            beat: x.key,
                             bpm: x.value,
                         })
                         .collect(),
@@ -142,7 +142,7 @@ fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfilePars
                     Ok(i) => i
                         .into_iter()
                         .map(|x| Stop {
-                            row: x.key,
+                            beat: x.key,
                             time: x.value,
                         })
                         .collect(),

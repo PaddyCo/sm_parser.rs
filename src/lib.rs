@@ -46,7 +46,6 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Result<Simfile, SimfileParse
                 cleaned_data.push('\n');
             }
             Err(e) => {
-                println!("{:?}", e);
                 return Err(SimfileParseError::BufReadError);
             }
         }
@@ -65,7 +64,6 @@ pub fn parse_simfile<R: BufRead>(reader: &mut R) -> Result<Simfile, SimfileParse
                 parse_section(&mut sim, &section)?;
             }
             Err(e) => {
-                println!("{:?}", e);
                 return Err(SimfileParseError::BufReadError);
             }
         };

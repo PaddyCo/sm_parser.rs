@@ -1,8 +1,8 @@
 pub mod simfile;
-use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, NoteType, Simfile, Stop, BPM};
+use simfile::{BPMDisplayType, Chart, ChartDifficulty, DisplayBPM, NoteType, Simfile, Stop, BPM, BgChange};
 use std::io::{BufRead, BufReader};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum SimfileParseError {
     BufReadError,
     FailedToParseBPMs,
@@ -10,6 +10,7 @@ pub enum SimfileParseError {
     TooManyValuesInDisplayBPM,
     EmptyNotesSection,
     InvalidChartFormat,
+    InvalidBgChangeFormat,
     UnknownChartDifficulty,
     FailedToParseChartMeter,
     UnsupportedNoteType,
@@ -117,6 +118,7 @@ fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfilePars
         "SAMPLESTART" => simfile.sample_start = parse_float(value),
         "SAMPLELENGTH" => simfile.sample_length = parse_float(value),
         "SELECTABLE" => simfile.selectable = parse_bool(value),
+        "BGCHANGES" => simfile.bg_changes = parse_bg_changes(value)?,
         "BPMS" => {
             simfile.bpms = {
                 match parse_key_value_list(value) {
@@ -251,6 +253,86 @@ fn parse_chart(value: Option<String>) -> Result<Chart, SimfileParseError> {
     };
 
     Ok(chart)
+}
+
+fn parse_bg_changes(value: Option<String>) -> Result<Vec<BgChange>, SimfileParseError> {
+    let value = match value {
+        Some(v) => v,
+        None => return Ok(Vec::new()),
+    };
+    let bg_changes: Vec<Result<BgChange, SimfileParseError>> =
+        value.replace("\n", "")
+             .replace("\r", "")
+             .split(',')
+             .collect::<Vec<&str>>()
+             .into_iter()
+             .map(parse_bg_change)
+             .collect();
+
+    let errors: Vec<SimfileParseError> = bg_changes.clone().into_iter().filter(|b| b.is_err()).map(|b| b.err().unwrap()).collect();
+
+    if !errors.is_empty() {
+        Err(errors[0])
+    } else {
+        Ok(bg_changes.into_iter().map(|b| b.unwrap() ).collect())
+    }
+}
+
+fn parse_bg_change(value: &str) -> Result<BgChange, SimfileParseError> {
+    // Split into values
+    let values: Vec<&str> = value.split('=').collect();
+
+    // TODO: Find out how many values are REQUIRED by StepMania
+    println!("{:?}", values);
+
+    if values.len() < 6 {
+        return Err(SimfileParseError::InvalidBgChangeFormat);
+    }
+
+    let start_beat = match values[0].parse::<f32>() {
+        Ok(v) => v,
+        Err(_) => return Err(SimfileParseError::InvalidBgChangeFormat)
+    };
+
+    let file_name = String::from(values[1]);
+
+    let play_rate = match values[2].parse::<f32>() {
+        Ok(v) => v,
+        Err(_) => return Err(SimfileParseError::InvalidBgChangeFormat)
+    };
+
+    let transition_type = match values[3].parse::<i8>() {
+        Ok(v) => v,
+        Err(_) => return Err(SimfileParseError::InvalidBgChangeFormat)
+    };
+
+    let effect_flag = match values[4].parse::<i8>() {
+        Ok(v) => v,
+        Err(_) => return Err(SimfileParseError::InvalidBgChangeFormat)
+    };
+
+    let second_effect_flag = match values[5].parse::<i8>() {
+        Ok(v) => v,
+        Err(_) => return Err(SimfileParseError::InvalidBgChangeFormat)
+    };
+
+    // TODO: Add support for the rest of the fields
+    //       in BGCHANGES (effect_file, second_effect_file, transition_file, color_string, second_color_string)
+
+
+    Ok(BgChange {
+        start_beat,
+        file_name,
+        play_rate,
+        transition_type,
+        effect_flag,
+        second_effect_flag,
+        effect_file: None,
+        second_effect_file: None,
+        transition_file: None,
+        color_string: None,
+        second_color_string: None,
+    })
 }
 
 fn parse_radar_values(data: &str) -> Result<Vec<f32>, SimfileParseError> {

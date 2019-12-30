@@ -361,6 +361,82 @@ fn parses_chart_radar_values() {
 }
 
 #[test]
+fn parses_empty_bg_changes() {
+    let sim = parse_string_as_simfile("#BGCHANGES:;").unwrap();
+    assert_eq!(sim.bg_changes.len(), 0);
+}
+
+#[test]
+fn parses_long_bg_changes() {
+    let sim = parse_string_as_simfile("#BGCHANGES:5.400=Diamond Happy.mp4=1.000=1=0=0=StretchNoLoop==CrossFade==;").unwrap();
+    assert_eq!(sim.bg_changes.len(), 1);
+    let bg_changes = &sim.bg_changes[0];
+    assert_eq!(bg_changes.start_beat, 5.400);
+    assert_eq!(bg_changes.file_name, String::from("Diamond Happy.mp4"));
+    assert_eq!(bg_changes.play_rate, 1.000);
+    assert_eq!(bg_changes.transition_type, 1);
+    assert_eq!(bg_changes.effect_flag, 0);
+    assert_eq!(bg_changes.second_effect_flag, 0);
+    return; // TODO: Remove this once we implement support for these fields
+    assert_eq!(bg_changes.effect_file, Some(String::from("StretchNoLoop")));
+    assert_eq!(bg_changes.second_effect_file, None);
+    assert_eq!(bg_changes.transition_file, Some(String::from("CrossFade")));
+    assert_eq!(bg_changes.color_string, None);
+    assert_eq!(bg_changes.second_color_string, None);
+}
+
+#[test]
+fn parses_bg_changes_with_multiple_entries_and_comment() {
+    let sim = parse_string_as_simfile(
+        "
+        #BGCHANGES:6.167=Shuffle! On the Stage OP Video.avi=1.000=1=0=0,
+        259.000=Shuffle! On The Stage BG2.jpg=1.000=1=0=0,
+        99999=-nosongbg-=1.000=0=0=0 // don't automatically add -songbackground-
+        ;
+        ",
+    ).unwrap();
+    let bg_changes = &sim.bg_changes;
+
+    assert_eq!(bg_changes.len(), 3);
+
+    assert_eq!(bg_changes[0].start_beat, 6.167);
+    assert_eq!(bg_changes[0].file_name, String::from("Shuffle! On the Stage OP Video.avi"));
+    assert_eq!(bg_changes[0].play_rate, 1.000);
+    assert_eq!(bg_changes[0].transition_type, 1);
+    assert_eq!(bg_changes[0].effect_flag, 0);
+    assert_eq!(bg_changes[0].second_effect_flag, 0);
+    assert_eq!(bg_changes[0].effect_file, None);
+    assert_eq!(bg_changes[0].second_effect_file, None);
+    assert_eq!(bg_changes[0].transition_file, None);
+    assert_eq!(bg_changes[0].color_string, None);
+    assert_eq!(bg_changes[0].second_color_string, None);
+
+    assert_eq!(bg_changes[1].start_beat, 259.000);
+    assert_eq!(bg_changes[1].file_name, String::from("Shuffle! On The Stage BG2.jpg"));
+    assert_eq!(bg_changes[1].play_rate, 1.000);
+    assert_eq!(bg_changes[1].transition_type, 1);
+    assert_eq!(bg_changes[1].effect_flag, 0);
+    assert_eq!(bg_changes[1].second_effect_flag, 0);
+    assert_eq!(bg_changes[1].effect_file, None);
+    assert_eq!(bg_changes[1].second_effect_file, None);
+    assert_eq!(bg_changes[1].transition_file, None);
+    assert_eq!(bg_changes[1].color_string, None);
+    assert_eq!(bg_changes[1].second_color_string, None);
+
+    assert_eq!(bg_changes[2].start_beat, 99999.0);
+    assert_eq!(bg_changes[2].file_name, String::from("-nosongbg-"));
+    assert_eq!(bg_changes[2].play_rate, 1.000);
+    assert_eq!(bg_changes[2].transition_type, 0);
+    assert_eq!(bg_changes[2].effect_flag, 0);
+    assert_eq!(bg_changes[2].second_effect_flag, 0);
+    assert_eq!(bg_changes[2].effect_file, None);
+    assert_eq!(bg_changes[2].second_effect_file, None);
+    assert_eq!(bg_changes[2].transition_file, None);
+    assert_eq!(bg_changes[2].color_string, None);
+    assert_eq!(bg_changes[2].second_color_string, None);
+}
+
+#[test]
 fn parses_chart_measures() {
     let sim = parse_string_as_simfile(TEST_CHART).unwrap();
     assert_eq!(
@@ -459,10 +535,21 @@ fn parsing_display_bpm_with_too_many_values_returns_error() {
 }
 
 #[test]
+fn parsing_bg_changes_with_too_few_values_returns_error() {
+    let sim = parse_string_as_simfile("#BGCHANGES:5.400=Diamond Happy.mp4=;");
+    assert!(sim.is_err());
+    assert_eq!(
+        sim.err().unwrap(),
+        SimfileParseError::InvalidBgChangeFormat
+    );
+}
+
+#[test]
 fn parsing_empty_chart_returns_error() {
     let sim = parse_string_as_simfile("#NOTES:;");
     assert_eq!(sim.err().unwrap(), SimfileParseError::EmptyNotesSection);
 }
+
 
 #[test]
 fn parsing_chart_with_invalid_header_returns_error() {
@@ -543,6 +630,7 @@ fn parse_simfile_parses_correctly() {
 
     println!("{:#?}", sim);
 
+    // TODO: BG changes
     // TODO: Test chart
 }
 

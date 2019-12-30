@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BPM {
     /// The row where the BPM gets set
     pub row: f32,
@@ -8,7 +8,7 @@ pub struct BPM {
     pub bpm: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stop {
     /// The row the stop occurs
     pub row: f32,
@@ -16,7 +16,7 @@ pub struct Stop {
     pub time: f32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BPMDisplayType {
     /// Only a single value will be displayed
     Single,
@@ -26,7 +26,7 @@ pub enum BPMDisplayType {
     Random,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DisplayBPM {
     /// Sets how the BPM should be displayed
     pub display_type: BPMDisplayType,
@@ -36,29 +36,40 @@ pub struct DisplayBPM {
     pub value2: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BgChange {
+    /// Start beat for bg change
     pub start_beat: f32,
     /// File or folder name
-    pub path: String,
+    pub file_name: String,
+    /// Play rate for effect
     pub play_rate: f32,
-    /// Name of the effect file to use.
-    pub effect_name: String,
-    /// Name of the second effect file to use.
-    pub second_effect_name: String,
-    /// Name of the transition file to use.
-    pub transition_name: String,
-    pub color_hex: String,
+    /// Backward compatible transition type, CrossFade is used if this is not 0.
+    pub transition_type: i8,
+    /// Backward compatible effect flag, StretchRewind is used if this is not 0.
+    pub effect_flag: i8,
+    /// Backward compatible effect flag, StretchNoLoop is used if this is not 0.
+    pub second_effect_flag: i8,
+    /// name of the effect file to use. The BackgroundEffects folder will be searched for a match.
+    pub effect_file: Option<String>,
+    /// name of the second effect file to use. The BackgroundEffects folder will be searched for a match.
+    pub second_effect_file: Option<String>,
+    /// name of the the transition file to use. The BackgroundTransitions folder will be searched for a match.
+    pub transition_file: Option<String>,
+    /// Color string in either "1.0^0.5^0.75^0.25" or "#ff7fcf3f" form. The fourth channel is optional.
+    pub color_string: Option<String>,
+    /// Second color string in either "1.0^0.5^0.75^0.25" or "#ff7fcf3f" form. The fourth channel is optional.
+    pub second_color_string: Option<String>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FgChange {
     pub start_beat: f32,
     /// File or folder name
     pub path: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ChartDifficulty {
     Beginner,
     Easy,
@@ -74,7 +85,7 @@ impl fmt::Display for ChartDifficulty {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NoteType {
     None,
     Normal,
@@ -88,7 +99,7 @@ pub enum NoteType {
     InvalidNote,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chart {
     pub chart_type: String,
     pub author: Option<String>,
@@ -104,7 +115,7 @@ pub struct Chart {
 }
 
 /// Represents a parsed Stepmania stepfile (.sm)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Simfile {
     /// The primary title of the song.
     pub title: Option<String>,

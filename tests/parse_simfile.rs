@@ -146,6 +146,18 @@ fn parses_empty_banner() {
 }
 
 #[test]
+fn parses_jacket() {
+    let sim = parse_string_as_simfile("#JACKET:TheJacket.png;").unwrap();
+    assert_eq!(sim.jacket_path, Some("TheJacket.png".to_string()));
+}
+
+#[test]
+fn parses_empty_jacket() {
+    let sim = parse_string_as_simfile("#JACKET:;").unwrap();
+    assert_eq!(sim.jacket_path, None);
+}
+
+#[test]
 fn parses_background() {
     let sim = parse_string_as_simfile("#BACKGROUND:TheBackground.png;").unwrap();
     assert_eq!(sim.background_path, Some("TheBackground.png".to_string()));

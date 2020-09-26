@@ -108,6 +108,7 @@ fn parse_section(simfile: &mut Simfile, section: &str) -> Result<(), SimfilePars
         "GENRE" => simfile.genre = value,
         "CREDIT" => simfile.credit = value,
         "BANNER" => simfile.banner_path = value,
+        "JACKET" => simfile.jacket_path = value,
         "BACKGROUND" => simfile.background_path = value,
         "LYRICSPATH" => simfile.lyrics_path = value,
         "CDTITLE" => simfile.cd_title_path = value,
